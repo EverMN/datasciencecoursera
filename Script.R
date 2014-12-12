@@ -1,2 +1,4 @@
-# Iniciando script
-# probando push con SSH desde RStudio
+source("pollutantmean.R")
+pollutantmean("specdata", "sulfate", 1:10)
+
+pollutantmean("specdata", "nitrate", 70:72)
