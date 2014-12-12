@@ -1,16 +1,15 @@
-pollutantmean <- function(directory, pollutant, id = 1:322) {
-  ## Valido que los IDs estén dentro del intervalo
-  if(min(id)<1 | max(id)>322) {
-    print("Please select a valid ID")
+pollutantmean <- function(directory, pollutant, id = 1:332) {
+  ## id interval validation
+  if(min(id)<1 | max(id)>332) {
+    return("Please select a valid ID")
   }
-  ## Valido pollutant
+  ## pollutant validation
   if(length(pollutant)!=1 | (pollutant!="sulfate"&pollutant!="nitrate")) {
-    print("Please review pollutant. Use sulfate or nitrate")
+    return("Please review pollutant. Use sulfate or nitrate")
   }
-
-  ## Reading only the files needed not all the files in the directory
+  ## Reading only DESIRED files, not all the files in the directory
   for(integer in id) {
-    ## Creando ruta de archivo -> file
+    ## Creating file paths
     file <- file.path(getwd(),
                       directory,
                       paste(
@@ -23,7 +22,7 @@ pollutantmean <- function(directory, pollutant, id = 1:322) {
                         sep=""),
                       fsep = .Platform$file.sep
                       )
-    ## Obteniendo datos
+    ## Getting data
     data <- read.csv(file)
     if (exists("x")){
       x <- c(x, data[,pollutant])   
@@ -31,7 +30,7 @@ pollutantmean <- function(directory, pollutant, id = 1:322) {
       x <- data[,pollutant]  
     }
   }
-  ## Calculando la media nas <- is.na(x); x <- x[!nas]
+  ## Getting x mean (opt. nas <- is.na(x); x <- x[!nas]; mean(x))
   result <- mean(x, na.rm = TRUE)
   return(result)
 }

@@ -1,9 +1,9 @@
 complete <- function(directory, id = 1:322) {
-  ## Valido que los IDs estén dentro del intervalo
-  if(min(id)<1 | max(id)>322) {
-    print("Please select a valid ID")
+  ## id interval validationo
+  if(min(id)<1 | max(id)>332) {
+    return("Please select a valid ID")
   }
-  ## Reading only the files needed not all the files in the directory
+  ## Reading only the DESIRED files, not all the files in the directory
   for(integer in id) {
     ## Creando ruta de archivo -> file
     file <- file.path(getwd(),
@@ -18,10 +18,10 @@ complete <- function(directory, id = 1:322) {
                         sep=""),
                       fsep = .Platform$file.sep
     )
-    ## Obteniendo datos
+    ## Getting data
     data_temp <- read.csv(file)  
     file_id <- integer
-    ## Validando observaciones completas
+    ## Building complete obs filter
     nas_field1 <- is.na(data_temp[,1])
     nas_field2 <- is.na(data_temp[,2])
     nas_field3 <- is.na(data_temp[,3])
@@ -29,7 +29,7 @@ complete <- function(directory, id = 1:322) {
                    nas_field2+
                    nas_field3)
     nobs <- sum(nas_comb)
-    ## Creando data frame
+    ## Building data frame
     if (exists("df_nobs")) {
       tmp_df_nobs <- data.frame(file_id, 
                                 nobs)
@@ -42,5 +42,5 @@ complete <- function(directory, id = 1:322) {
     }
   }
   colnames(df_nobs) <- c("id", "nobs")
-  df_nobs
+  return(df_nobs)
 }
