@@ -1,0 +1,174 @@
+---
+title: "Notas Assignment 2"
+author: "Everardo Mancilla"
+date: "December 12, 2014"
+output: 
+---
+
+
+Assignment 2 seems pretty complicated at first, for several reasons. We are introduced to one-line functions lacking the { }, which can be confusing the first time you see them; many of the variables lack useful descriptive names, making it much harder to understand the code; would it have killed them to have added a couple of effing comments?; superassignment is new; a function is created inside another function -- how do you access it?; and finally, the two main functions work together well IF you understand object-oriented programming (OOP) concepts, but if you are unfamiliar with OOP then it's not clear at all. 
+
+If you are new to programming then this assignment is probably a nightmare.
+
+So I wrote up an explanation, after working through this when I took the class in August.  Here it is.  I probably can't answer all questions since I'm busy with five classes at the moment, but read this carefully, think about it, and ask if it's still not clear and probably someone will help out.
+
+The good news is that once you understand how it works with a vector and 'mean' then it is trivial to make it work with a matrix and 'solve'.  I mean really easy.
+
+So I'll start at the top, how I would use makeVector() and cachemean() together.
+
+To start, makeVector() is passed a vector which creates an "object" of type 'list'.  This object stores two things, the original vector's value and what will be the cached value, which is initially set to 'NULL'.  There are four functions, two to read (or 'get') the value of the two things we are storing, and two functions to change ('set') them.  In OOP parlance these are known as 'getter' and 'setter' methods. 
+
+
+Note this object is a generic storage object (you can store a number representing anything, not just the mean).  The key point here is you use makevector() to create an object, then access that object, not makevector. 
+
+So step one is to create the new object(s) with makeVector().  
+
+Next cachemean() accesses the object (not the makeVector() function, but the object created when makeVector() was called) by fetching the value of the vector used to create the object, this vector being stored when the object was created.  This makes perfect sense if you know OOP but probably is confusing if you don't.  Don't worry about it for now. 
+
+If the mean has not yet been calculated (if it is still is 'NULL') cachemean() calculates the mean and stores it  in the object created by the call to makeVector(), then returns the mean.  If the mean has been  calculated earlier then cachemean() simply fetches it and returns the mean value, saving the computing time required to calculate the mean again.  Either way cachemean() returns the mean.
+
+(Note that this is only useful for an operation that might take a very long time where the value is referenced often.)
+
+
+OK, maybe you are confused by now, so let's just make two objects and access them and you'll see how simple this actually is from the top level.
+
+Basically you can run these functions with just two commands.  Here is the code you might use to create two 'objects' and store/fetch their means.
+
+> bigVec <- makeVector(1:1000)        # now we have an object 'bigVec' of type list
+> biggerVec <- makeVector(1:100000)   # 'biggerVec' of type list with 100,000 numbers
+
+# So the above calls makeVector() twice, creating two objects which we'll refer to as 'bigVec' and 
+#  'biggerVec'.  Now let's access them with cachemean().  Note we do not call makeVector(), we 
+#   reference the objects created by earlier calls to makeVector().
+
+> cachemean(bigVec)   # first time so this function will compute 'mean', store it and return it
+[1] 500.5
+
+> cachemean(bigVec)   # 2nd access, value is cached so compute time is saved
+getting cached data   #  note that a messsage is returned for cached values
+[1] 500.5
+
+> cachemean(biggerVec)  # different object so different mean value returned
+[1] 50000.5
+> cachemean(biggerVec)  # 2nd access so we get the reminder that this is cached
+getting cached data
+[1] 50000.5
+
+>bigVec <- makeVector(1:2) # changing the vector values so makes a new object (but with same
+                           #  name, note)
+
+> cachemean(bigVec)        # the code is smart enough to figure out there's a new vector
+[1] 1.5                    #  so a new mean is calculated and cached
+> cachemean(bigVec)
+getting cached data
+[1] 1.5
+
+
+### OK, the above code is enough to fully test the two functions.  It's that simple.
+
+So let's look at the actual code to see what happens during these three situations (make object with a call to makeVector(); calculate, store and return 'mean' value with the first cachemean(object) access of the object; and fetch previously stored mean value with the second cachemean(object) access of the object).
+
+I've simplified makeVector by deleting the set() function since it's not accessed by cachemean().  I'll add it back later, but it's easier to understand this initially without set() cluttering the code.  I also added curly braces {  } in the one-line functions though these are optional.
+
+makeVector <- function(x = numeric()) {      # input x will be a vector
+
+    m <- NULL    #  m will be our 'mean' and it's reset to NULL every 
+                 #    time makeVector is called
+
+                 #  note these next three functions are defined but not run when makeVector is called.
+                 #   instead, they will be used by cachemean() to get values for x or for
+                 #   m (mean) and for setting the mean.  These are usually called object 'methods'
+
+    get <- function() { x }   # this function returns the value of the original vector
+
+    setmean <- function(mean)  { m <<- mean }
+                # this is called by cachemean() during the first cachemean()
+                                #  access and it will store the value using superassignment
+                                       
+    getmean <- function() { m } # this will return the cached value to cachemean() on
+                                #  subsequent accesses
+
+    list(get = get,          #  OK, this is accessed each time makeVector() is called,       
+         setmean = setmean,  #   that is, each time we make a new object.  This is a list of 
+         getmean = getmean)  #   the internal functions ('methods') so a calling function
+                             #   knows how to access those methods.                            
+}
+
+
+OK, that's a stripped down version of makeVector() ... call it and you create an object of type list, with variable 'm' initialized to "NULL".  So think of it as a storage device, storing 'x' (the original input vector) and 'm' (the mean that will be passed in, initialized as 'NULL").  
+
+That's it, plus the short functions which we will access from cachemean() by calling the object created by makeVector().
+
+Here is the second function, cachemean(x).  When called it first gets the mean from the object x (x$getmean()) ... then one of two things happen.  If there is a non-NULL value in the mean then a message is sent and the mean is returned (return(m)) and the cachemean function stops.
+
+If the fetched mean value is NULL then the if() statement is skipped and the next four lines are executed, namely a fetch of the original vector (x$get()), calculation of the mean value of that vector, storing this mean value back in the object (x$setmean(m)) and the return of m to end the function.
+
+So it's very simple when thought of this way.
+
+Here is the code, heavily commented.  Make sure you understand it ... 
+
+The 'x' in x$getmean(), x$get(), x$setmean(m) confuses many people.  This is a token or placeholder for the object name and will be replaced by the name of the object when cachemean() is called.  So to use the test code above, cachemean(bigVec) means we'll swap in object name 'bigVec' for x and so we have m <- bigVec$getmean(), data <- bigVec$get(), bigVec$setmean(m) ... if we instead have cachemean(biggerVec) then ... well hopefully it's clear that we sub in m <- biggerVec$getmean().
+
+
+cachemean <- function(x, ...) {   # the input x is an object created by makeVector
+    m <- x$getmean()               # accesses the object 'x' and gets the value of the mean
+    if(!is.null(m)) {              # if mean was already cached (not NULL) ...
+
+        message("getting cached data")  # ... send this message to the console
+        return(m)                       # ... and return the mean ... "return" ends 
+                        #   the function cachemean(), note
+    }
+    data <- x$get()        # we reach this code only if x$getmean() returned NULL
+    m <- mean(data, ...)   # if m was NULL then we have to calculate the mean
+    x$setmean(m)           # store the calculated mean value in x (see setmean() in makeVector
+    m               # return the mean to the code that called this function
+}
+
+
+Note that you can access the makeVector internal data directly with $, for instance bigVec$m ... but it is considered bad OOP form to do this.  Instead you should use the get/set functions (methods).  But this is not important for us now.  
+
+Let's look at the following code for examples.
+
+> bigVec$get()
+[1] 1 2
+
+> bigVec$getmean()
+[1] 1.5
+
+> biggerVec$getmean()
+[1] 50000.5
+> biggerVec$get()      # don't do this since it's a really long vector, 100,000 entries!
+
+So, what about the method "set()" which I omitted thus far?  I took it out because it's not accessed by cachemean() but it could have been used during debugging or possibly by another calling function other than cachemean().  It lets you assign a new value to the object, if that's necessary to save memory.  
+
+So here it is ... 
+
+set <- function(y) {    # takes an input vector
+        x <<- y         # saves the input vector 
+        m <<- NULL      # resets the mean to NULL, basically what happens when a new object is generated.
+    }
+
+
+Here's code that makes an object bV, runs cachemean(bV) twice with the expected results, then uses $set() to rewrite the object:
+
+> bV <- makeVector(1:10)   # now we have an object bV
+> cachemean(bV)            # now we generated the mean and cached it
+[1] 5.5
+> cachemean(bV)            # reading back the cached data
+getting cached data
+[1] 5.5
+> 
+> bV$set(50:60)            # this is new ... bypass calling bV <- makeVector(50:60) by using $set
+> 
+> cachemean(bV)            #  and as you can see it worked, m was set to NULL so cachemean(bV) generates
+[1] 55                     #    a new mean and stores it
+> cachemean(bV)
+getting cached data
+[1] 55
+> bV$get()                 # shows that a new vector was stored
+ [1] 50 51 52 53 54 55 56 57 58 59 60
+
+
+OK, I think that explains how the code works.  If you are not familiar with OOP then this approach will be confusing, but just try to follow along for now.  
+
+You can change this to work with a matrix by just changing a couple of words, if you understand what I just explained.
